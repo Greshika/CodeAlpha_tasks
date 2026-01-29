@@ -1,0 +1,42 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+base_url = "https://books.toscrape.com/catalogue/page-{}.html"
+books_data = []
+for page_number in range(1, 51):
+    print("Scraping page:", page_number)
+    url = base_url.format(page_number)
+    response = requests.get(url)
+    if response.status_code != 200:
+        print("Page not loaded:", page_number)
+        continue
+    soup = BeautifulSoup(response.text, "html.parser")
+    books = soup.find_all("article", class_="product_pod")
+    for book in books:
+        # Book title
+        title = book.h3.a["title"]
+        # Book price
+        price = book.find("p", class_="price_color").text.strip()
+        # Stock availability
+        availability = book.find("p", class_="instock availability").text.strip()
+        # Rating (One, Two, Three, Four, Five)
+        rating = book.find("p", class_="star-rating")["class"][1]
+        # Product link
+        product_link = "https://books.toscrape.com/catalogue/" + book.h3.a["href"]
+
+        books_data.append([title, price, availability, rating, product_link])
+
+df = pd.DataFrame(
+    books_data,
+    columns=["Title", "Price", "Availability", "Rating", "Product_Link"]
+)
+
+#  To show first 5 rows
+print(df.head())
+
+# Save data into CSV file
+df.to_csv("complete_books_dataset.csv", index=False)
+
+print("\n✅ Scraping finished successfully!")
+print("Total books scraped:", len(df))
+print("File saved as: complete_books_dataset.csv")
